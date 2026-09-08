@@ -23,7 +23,7 @@ export const OPENING_POCKETS = [
   [16, 4],
   [18, 10],
   [8, 12],
-].map(([column, row]) => row * COLS + column);
+].map(([column, row]) => row! * COLS + column!);
 
 /**
  * Finish-line fix: the two rows beneath and beside the jerry can are solid

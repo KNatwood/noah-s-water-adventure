@@ -51,7 +51,7 @@ interface WaterGameProps {
 }
 
 export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
-  const level: Level = LEVELS[levelIndex];
+  const level: Level = LEVELS[levelIndex]!;
   const rockCells = useMemo(() => new Set(level.rocks.map(([c, r]) => r * COLS + c)), [level]);
 
   const [soilCells, setSoilCells] = useState<Set<number>>(() => createSoil(rockCells));

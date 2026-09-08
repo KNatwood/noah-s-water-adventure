@@ -29,5 +29,5 @@ export const QUOTES: Quote[] = [
 ];
 
 export function quoteForLevel(levelIndex: number): Quote {
-  return QUOTES[levelIndex % QUOTES.length];
+  return QUOTES[levelIndex % QUOTES.length]!;
 }

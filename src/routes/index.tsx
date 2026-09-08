@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
 });
 
 function StartPage() {
-  const quote = QUOTES[0];
+  const quote = QUOTES[0]!;
 
   return (
     <div className="flex min-h-screen flex-col bg-ink">
