@@ -1,26 +1,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  CELL_SIZE,
   COLS,
   ROWS,
+  GOAL_INDEX,
+  GOAL_MOUTH,
   LEVELS,
-  MOUTH_CELLS,
-  SOURCE_CELLS,
+  OPENING_POCKETS,
+  SOURCE_INDEX,
   solidCells,
   type Level,
 } from "@/lib/levels";
 import { quoteForLevel } from "@/lib/quotes";
 import jerryCanYellow from "@/assets/jerry-can-yellow.png.asset.json";
 
-const W = 720;
-const H = 480;
-const CELL = W / COLS; // 30
 const BRUSH_R = 27;
-const FILL_PER_TICK = 9;
 const TICK_MS = 180;
+const FILL_PER_TICK = 14;
 
 const SOLID = solidCells();
-const MOUTH = new Set(MOUTH_CELLS);
+const MOUTH = new Set(GOAL_MOUTH);
+
+type FlowState = "moving" | "waiting" | "full";
+
+function createSoil(rockCells: Set<number>) {
+  const soil = new Set<number>();
+  for (let row = 1; row < ROWS; row += 1) {
+    for (let column = 0; column < COLS; column += 1) {
+      const index = row * COLS + column;
+      if (
+        index !== SOURCE_INDEX &&
+        index !== GOAL_INDEX &&
+        !OPENING_POCKETS.includes(index) &&
+        !rockCells.has(index) &&
+        !SOLID.has(index)
+      ) {
+        soil.add(index);
+      }
+    }
+  }
+  return soil;
+}
 
 interface WaterGameProps {
   levelIndex: number;
@@ -29,155 +52,197 @@ interface WaterGameProps {
 
 export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
   const level: Level = LEVELS[levelIndex];
-  const rocks = useMemo(() => {
-    const s = new Set<number>();
-    for (const [c, r] of level.rocks) s.add(r * COLS + c);
-    return s;
-  }, [level]);
+  const rockCells = useMemo(() => new Set(level.rocks.map(([c, r]) => r * COLS + c)), [level]);
 
-  const initialSoil = useCallback(() => {
-    const s = new Set<number>();
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const id = r * COLS + c;
-        if (rocks.has(id) || SOLID.has(id)) continue;
-        if (r === 0 && SOURCE_CELLS.includes(c)) continue; // source starts open
-        s.add(id);
-      }
-    }
-    return s;
-  }, [rocks]);
-
-  const [soil, setSoil] = useState<Set<number>>(initialSoil);
-  const [water, setWater] = useState<Set<number>>(new Set());
+  const [soilCells, setSoilCells] = useState<Set<number>>(() => createSoil(rockCells));
+  const [waterTrail, setWaterTrail] = useState<number[]>([SOURCE_INDEX]);
+  const [waterFront, setWaterFront] = useState<number[]>([SOURCE_INDEX]);
+  const [cursorPoint, setCursorPoint] = useState<{ x: number; y: number } | null>(null);
   const [fill, setFill] = useState(0);
-  const [won, setWon] = useState(false);
+  const [status, setStatus] = useState<FlowState>("moving");
+  const [solved, setSolved] = useState(false);
+  const [howToOpen, setHowToOpen] = useState(false);
 
   const svgRef = useRef<SVGSVGElement>(null);
-  const soilRef = useRef(soil);
+  const soilRef = useRef<Set<number>>(soilCells);
+  const rockRef = useRef<Set<number>>(rockCells);
+  const trailRef = useRef<Set<number>>(new Set([SOURCE_INDEX]));
+  const frontRef = useRef<number[]>([SOURCE_INDEX]);
   const fillRef = useRef(0);
-  const wonRef = useRef(false);
-  const diggingRef = useRef(false);
-  const cursorRef = useRef<SVGCircleElement>(null);
-  soilRef.current = soil;
+  const solvedRef = useRef(false);
+  const drawingRef = useRef(false);
+  soilRef.current = soilCells;
+  rockRef.current = rockCells;
 
-  const restart = useCallback(() => {
-    setSoil(initialSoil());
-    setWater(new Set());
-    setFill(0);
-    setWon(false);
+  const reset = useCallback(() => {
+    const nextSoil = createSoil(rockRef.current);
+    soilRef.current = nextSoil;
+    trailRef.current = new Set([SOURCE_INDEX]);
+    frontRef.current = [SOURCE_INDEX];
     fillRef.current = 0;
-    wonRef.current = false;
-  }, [initialSoil]);
+    solvedRef.current = false;
+    setSoilCells(nextSoil);
+    setWaterTrail([SOURCE_INDEX]);
+    setWaterFront([SOURCE_INDEX]);
+    setCursorPoint(null);
+    setFill(0);
+    setStatus("moving");
+    setSolved(false);
+  }, []);
 
-  // Reset whenever the level changes
   useEffect(() => {
-    restart();
-  }, [restart, levelIndex]);
+    reset();
+  }, [reset, levelIndex]);
 
-  // Water simulation: flood-fill from the source through dug cells.
+  // R restarts the level
   useEffect(() => {
-    const tick = () => {
-      const open = (id: number) =>
-        !soilRef.current.has(id) && !rocks.has(id) && !SOLID.has(id);
-      const seen = new Set<number>();
-      const queue: number[] = [];
-      for (const c of SOURCE_CELLS) {
-        const id = c; // row 0
-        if (open(id)) {
-          seen.add(id);
-          queue.push(id);
-        }
-      }
-      while (queue.length) {
-        const id = queue.pop()!;
-        const r = Math.floor(id / COLS);
-        const c = id % COLS;
-        const neighbors = [
-          r + 1 < ROWS ? id + COLS : -1, // down
-          c > 0 ? id - 1 : -1, // left
-          c < COLS - 1 ? id + 1 : -1, // right
-          r > 0 ? id - COLS : -1, // up (fills dug basins)
-        ];
-        for (const n of neighbors) {
-          if (n >= 0 && !seen.has(n) && open(n)) {
-            seen.add(n);
-            queue.push(n);
-          }
-        }
-      }
-      setWater(seen);
-
-      // Win check: water touching the jerry can mouth fills it.
-      if (!wonRef.current) {
-        let touching = false;
-        for (const m of MOUTH) {
-          if (seen.has(m)) {
-            touching = true;
-            break;
-          }
-        }
-        if (touching) {
-          fillRef.current = Math.min(100, fillRef.current + FILL_PER_TICK);
-          setFill(fillRef.current);
-          if (fillRef.current >= 100) {
-            wonRef.current = true;
-            setWon(true);
-          }
-        }
-      }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "r") reset();
+      if (e.key === "Escape") setHowToOpen(false);
     };
-    const timer = setInterval(tick, TICK_MS);
-    return () => clearInterval(timer);
-  }, [rocks]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reset]);
 
-  const toLocal = useCallback((e: React.PointerEvent) => {
+  // Water simulation — the original front-based falling water, with a fixed goal.
+  useEffect(() => {
+    const getNeighbors = (index: number) => {
+      const column = index % COLS;
+      const row = Math.floor(index / COLS);
+      return [
+        [column, row + 1],
+        [column - 1, row + 1],
+        [column + 1, row + 1],
+        [column - 1, row],
+        [column + 1, row],
+      ]
+        .filter(
+          ([c, r]) => c >= 0 && c < COLS && r >= 0 && r < ROWS,
+        )
+        .map(([c, r]) => r * COLS + c);
+    };
+
+    const timer = window.setInterval(() => {
+      if (solvedRef.current) return;
+
+      const nextFront: number[] = [];
+      const occupied = new Set<number>();
+
+      for (const index of frontRef.current) {
+        const neighbors = getNeighbors(index).filter(
+          (candidate) =>
+            !soilRef.current.has(candidate) &&
+            !rockRef.current.has(candidate) &&
+            !SOLID.has(candidate) &&
+            !trailRef.current.has(candidate),
+        );
+        const currentRow = Math.floor(index / COLS);
+        const falling = neighbors.filter((c) => Math.floor(c / COLS) > currentRow);
+        const nextCandidates = falling.length
+          ? falling.slice(0, 1)
+          : neighbors.slice(0, 2);
+
+        if (!nextCandidates.length) {
+          nextFront.push(index);
+          occupied.add(index);
+          continue;
+        }
+        for (const next of nextCandidates) {
+          if (occupied.has(next)) continue;
+          nextFront.push(next);
+          occupied.add(next);
+          trailRef.current.add(next);
+        }
+      }
+
+      // Fixed finish line: water touching the can's mouth fills it.
+      let touching = false;
+      for (const m of MOUTH) {
+        if (trailRef.current.has(m) || nextFront.includes(m)) {
+          touching = true;
+          break;
+        }
+      }
+
+      if (touching) {
+        fillRef.current = Math.min(100, fillRef.current + FILL_PER_TICK);
+        setFill(fillRef.current);
+        if (fillRef.current >= 100) {
+          solvedRef.current = true;
+          setSolved(true);
+          setStatus("full");
+        } else {
+          setStatus("full");
+        }
+      } else {
+        const moving = nextFront.some((index, pos) => index !== frontRef.current[pos]);
+        setStatus(moving ? "moving" : "waiting");
+      }
+
+      frontRef.current = nextFront;
+      setWaterFront(nextFront);
+      setWaterTrail(Array.from(trailRef.current));
+    }, TICK_MS);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const getPoint = useCallback((e: React.PointerEvent) => {
     const svg = svgRef.current;
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     return {
-      x: Math.max(0, Math.min(W, ((e.clientX - rect.left) / rect.width) * W)),
-      y: Math.max(0, Math.min(H, ((e.clientY - rect.top) / rect.height) * H)),
+      x: Math.max(0, Math.min(CANVAS_WIDTH, ((e.clientX - rect.left) / rect.width) * CANVAS_WIDTH)),
+      y: Math.max(0, Math.min(CANVAS_HEIGHT, ((e.clientY - rect.top) / rect.height) * CANVAS_HEIGHT)),
     };
   }, []);
 
-  const digAt = useCallback(
-    (x: number, y: number) => {
-      if (wonRef.current) return;
-      const next = new Set(soilRef.current);
-      let changed = false;
-      const c0 = Math.max(0, Math.floor((x - BRUSH_R) / CELL));
-      const c1 = Math.min(COLS - 1, Math.floor((x + BRUSH_R) / CELL));
-      const r0 = Math.max(0, Math.floor((y - BRUSH_R) / CELL));
-      const r1 = Math.min(ROWS - 1, Math.floor((y + BRUSH_R) / CELL));
-      for (let r = r0; r <= r1; r++) {
-        for (let c = c0; c <= c1; c++) {
-          const cx = c * CELL + CELL / 2;
-          const cy = r * CELL + CELL / 2;
-          if (Math.hypot(cx - x, cy - y) <= BRUSH_R) {
-            const id = r * COLS + c;
-            if (next.delete(id)) changed = true;
-          }
+  const carveAt = useCallback((point: { x: number; y: number }) => {
+    if (solvedRef.current) return;
+    const minColumn = Math.max(0, Math.floor((point.x - BRUSH_R) / CELL_SIZE));
+    const maxColumn = Math.min(COLS - 1, Math.floor((point.x + BRUSH_R) / CELL_SIZE));
+    const minRow = Math.max(1, Math.floor((point.y - BRUSH_R) / CELL_SIZE));
+    const maxRow = Math.min(ROWS - 1, Math.floor((point.y + BRUSH_R) / CELL_SIZE));
+    let changed = false;
+    const nextSoil = new Set(soilRef.current);
+    for (let row = minRow; row <= maxRow; row += 1) {
+      for (let column = minColumn; column <= maxColumn; column += 1) {
+        const cx = column * CELL_SIZE + CELL_SIZE / 2;
+        const cy = row * CELL_SIZE + CELL_SIZE / 2;
+        if (Math.hypot(cx - point.x, cy - point.y) <= BRUSH_R) {
+          const index = row * COLS + column;
+          // Bedrock and the can's footing can never be dug.
+          if (!SOLID.has(index) && nextSoil.delete(index)) changed = true;
         }
       }
-      if (changed) setSoil(next);
-    },
-    [],
-  );
+    }
+    if (changed) setSoilCells(nextSoil);
+  }, []);
 
-  const moveCursor = useCallback(
-    (x: number, y: number, visible: boolean) => {
-      const el = cursorRef.current;
-      if (!el) return;
-      el.setAttribute("cx", String(x));
-      el.setAttribute("cy", String(y));
-      el.style.display = visible ? "block" : "none";
-    },
-    [],
-  );
+  const cellPoint = (index: number) => ({
+    x: (index % COLS) * CELL_SIZE + CELL_SIZE / 2,
+    y: Math.floor(index / COLS) * CELL_SIZE + CELL_SIZE / 2,
+  });
 
   const quote = quoteForLevel(levelIndex);
   const nextAvailable = levelIndex < LEVELS.length - 1;
+  const canX = 19 * CELL_SIZE;
+  const canY = 13 * CELL_SIZE - 10;
+  const streamPoints = waterTrail
+    .map((index) => {
+      const p = cellPoint(index);
+      return `${p.x},${p.y}`;
+    })
+    .join(" ");
+
+  const statusLabel =
+    status === "full"
+      ? fill >= 100
+        ? "Jerry can is full!"
+        : "Jerry can is filling…"
+      : status === "moving"
+        ? "Water is moving"
+        : "Water is waiting";
 
   return (
     <div className="flex w-full max-w-3xl flex-col items-center gap-4">
@@ -192,164 +257,213 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
           </h2>
           <p className="text-sm text-muted-foreground">{level.subtitle}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Fill meter */}
-          <div className="flex items-center gap-2">
-            <img src={jerryCanYellow.url} alt="Jerry can" className="h-8 w-auto" />
-            <div className="h-3 w-28 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-water transition-all duration-200"
-                style={{ width: `${fill}%` }}
-              />
-            </div>
-            <span className="w-10 text-xs font-bold text-muted-foreground">
-              {fill}%
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
           <button
-            onClick={restart}
+            onClick={() => setHowToOpen(true)}
             className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
           >
-            Restart
+            How to play
+          </button>
+          <button
+            onClick={reset}
+            className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          >
+            Restart <span className="text-muted-foreground">(R)</span>
           </button>
         </div>
       </div>
 
+      {/* Progress */}
+      <div className="flex w-full items-center gap-3">
+        <img src={jerryCanYellow.url} alt="Jerry can" className="h-8 w-auto" />
+        <div className="h-3 flex-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-water transition-all duration-200"
+            style={{ width: `${fill}%` }}
+          />
+        </div>
+        <span className="text-xs font-bold text-muted-foreground">
+          {statusLabel}
+        </span>
+      </div>
+
       {/* Play field */}
-      <div className="relative w-full overflow-hidden rounded-2xl border-4 border-ink shadow-xl">
+      <div className="relative w-full overflow-hidden rounded-2xl border-4 border-ink bg-card shadow-xl">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${W} ${H}`}
+          viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
           className="block w-full touch-none select-none"
-          style={{ background: "linear-gradient(180deg, oklch(0.97 0.02 95) 0%, oklch(0.93 0.04 85) 100%)" }}
+          style={{
+            background:
+              "linear-gradient(180deg, oklch(0.97 0.02 95) 0%, oklch(0.93 0.04 85) 100%)",
+          }}
           onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
-            diggingRef.current = true;
-            const p = toLocal(e);
+            drawingRef.current = true;
+            const p = getPoint(e);
             if (p) {
-              digAt(p.x, p.y);
-              moveCursor(p.x, p.y, true);
+              setCursorPoint(p);
+              carveAt(p);
             }
           }}
           onPointerMove={(e) => {
-            const p = toLocal(e);
+            const p = getPoint(e);
             if (!p) return;
-            moveCursor(p.x, p.y, true);
-            if (diggingRef.current) digAt(p.x, p.y);
+            setCursorPoint(p);
+            if (drawingRef.current) carveAt(p);
           }}
           onPointerUp={() => {
-            diggingRef.current = false;
+            drawingRef.current = false;
           }}
           onPointerLeave={() => {
-            diggingRef.current = false;
-            moveCursor(0, 0, false);
+            drawingRef.current = false;
+            setCursorPoint(null);
           }}
         >
-          {/* Soil */}
-          {Array.from(soil).map((id) => {
-            const r = Math.floor(id / COLS);
-            const c = id % COLS;
+          {/* Water stream */}
+          {waterTrail.length > 1 && (
+            <polyline
+              points={streamPoints}
+              className="fill-none stroke-water"
+              strokeWidth={10}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity={0.45}
+            />
+          )}
+          {waterTrail.map((index) => {
+            const p = cellPoint(index);
             return (
-              <rect
-                key={`s${id}`}
-                x={c * CELL}
-                y={r * CELL}
-                width={CELL}
-                height={CELL}
-                className={(r + c) % 2 === 0 ? "fill-dirt" : "fill-dirt-dark"}
+              <circle
+                key={`t${index}`}
+                cx={p.x}
+                cy={p.y}
+                r={9}
+                className="fill-water"
+                opacity={0.75}
               />
+            );
+          })}
+          {waterFront.map((index, i) => {
+            const p = cellPoint(index);
+            return (
+              <circle key={`f${i}`} cx={p.x} cy={p.y} r={12} className="fill-water" />
+            );
+          })}
+
+          {/* Soil */}
+          {Array.from(soilCells).map((index) => {
+            const column = index % COLS;
+            const row = Math.floor(index / COLS);
+            return (
+              <g key={`s${index}`}>
+                <rect
+                  x={column * CELL_SIZE}
+                  y={row * CELL_SIZE}
+                  width={CELL_SIZE}
+                  height={CELL_SIZE}
+                  className={(column + row) % 2 === 0 ? "fill-dirt" : "fill-dirt-dark"}
+                />
+                {(column + row) % 3 === 0 && (
+                  <circle
+                    cx={column * CELL_SIZE + CELL_SIZE * 0.3}
+                    cy={row * CELL_SIZE + CELL_SIZE * 0.35}
+                    r={2}
+                    className="fill-dirt-dark"
+                    opacity={0.6}
+                  />
+                )}
+              </g>
             );
           })}
 
           {/* Rocks */}
-          {Array.from(rocks).map((id) => {
-            const r = Math.floor(id / COLS);
-            const c = id % COLS;
+          {Array.from(rockCells).map((index) => {
+            const column = index % COLS;
+            const row = Math.floor(index / COLS);
             return (
               <rect
-                key={`r${id}`}
-                x={c * CELL + 1}
-                y={r * CELL + 1}
-                width={CELL - 2}
-                height={CELL - 2}
-                rx={6}
+                key={`r${index}`}
+                x={column * CELL_SIZE + 1}
+                y={row * CELL_SIZE + 1}
+                width={CELL_SIZE - 2}
+                height={CELL_SIZE - 2}
+                rx={7}
                 className="fill-rock"
               />
             );
           })}
 
-          {/* Bedrock floor */}
-          {Array.from({ length: COLS }, (_, c) => (
-            <rect
-              key={`b${c}`}
-              x={c * CELL}
-              y={15 * CELL}
-              width={CELL}
-              height={CELL}
-              className="fill-bedrock"
-            />
-          ))}
-
-          {/* Water */}
-          {Array.from(water).map((id) => {
-            const r = Math.floor(id / COLS);
-            const c = id % COLS;
+          {/* Bedrock footing under the jerry can */}
+          {Array.from(SOLID).map((index) => {
+            const column = index % COLS;
+            const row = Math.floor(index / COLS);
             return (
               <rect
-                key={`w${id}`}
-                x={c * CELL}
-                y={r * CELL}
-                width={CELL}
-                height={CELL}
-                className="fill-water opacity-90"
+                key={`b${index}`}
+                x={column * CELL_SIZE}
+                y={row * CELL_SIZE}
+                width={CELL_SIZE}
+                height={CELL_SIZE}
+                className="fill-bedrock"
               />
             );
           })}
 
-          {/* Source pipe */}
-          <rect x={11 * CELL - 6} y={-4} width={2 * CELL + 12} height={18} rx={6} className="fill-rock" />
+          {/* Source */}
+          <rect
+            x={2 * CELL_SIZE - 10}
+            y={1 * CELL_SIZE - 22}
+            width={CELL_SIZE + 20}
+            height={20}
+            rx={7}
+            className="fill-rock"
+          />
           <text
-            x={12 * CELL}
-            y={34}
+            x={2 * CELL_SIZE + CELL_SIZE / 2}
+            y={1 * CELL_SIZE - 28}
             textAnchor="middle"
             className="fill-ink"
-            style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2 }}
+            style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2 }}
           >
             WATER SOURCE
           </text>
 
-          {/* Jerry can (finish) — solid, cannot be dug through */}
+          {/* Jerry can finish goal */}
           <image
             href={jerryCanYellow.url}
-            x={10 * CELL}
-            y={13 * CELL - 22}
-            width={4 * CELL}
-            height={Math.round(4 * CELL * (226 / 163))}
+            x={canX}
+            y={canY}
+            width={3.4 * CELL_SIZE}
+            height={Math.round(3.4 * CELL_SIZE * (226 / 163))}
             preserveAspectRatio="xMidYMax meet"
           />
           <text
-            x={12 * CELL}
-            y={13 * CELL - 30}
+            x={21 * CELL_SIZE + CELL_SIZE / 2}
+            y={13 * CELL_SIZE - 18}
             textAnchor="middle"
             className="fill-ink"
-            style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2 }}
+            style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2 }}
           >
             JERRY CAN
           </text>
 
-          {/* Dig cursor */}
-          <circle
-            ref={cursorRef}
-            r={BRUSH_R}
-            className="fill-none stroke-ink"
-            strokeWidth={2}
-            strokeDasharray="6 6"
-            style={{ display: "none", pointerEvents: "none" }}
-          />
+          {/* Cursor ring */}
+          {cursorPoint && !solved && (
+            <circle
+              cx={cursorPoint.x}
+              cy={cursorPoint.y}
+              r={BRUSH_R}
+              className="fill-none stroke-ink"
+              strokeWidth={2}
+              strokeDasharray="6 6"
+              style={{ pointerEvents: "none" }}
+            />
+          )}
         </svg>
 
         {/* Win overlay */}
-        {won && (
+        {solved && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/70 p-6">
             <div className="w-full max-w-md rounded-2xl bg-card p-8 text-center shadow-2xl">
               <img
@@ -358,7 +472,7 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
                 className="mx-auto h-24 w-auto"
               />
               <h3 className="mt-3 font-display text-3xl font-extrabold text-foreground">
-                Jerry can filled!
+                That water found its way.
               </h3>
               <blockquote className="mt-4 text-lg font-semibold text-foreground">
                 “{quote.text}”
@@ -368,17 +482,17 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
-                  onClick={restart}
+                  onClick={reset}
                   className="rounded-full border border-border px-5 py-2 text-sm font-bold text-foreground transition-colors hover:bg-accent"
                 >
-                  Play again
+                  Try this level again
                 </button>
                 {nextAvailable ? (
                   <button
                     onClick={() => onSelectLevel(levelIndex + 1)}
                     className="rounded-full bg-brand px-5 py-2 text-sm font-extrabold text-brand-foreground transition-transform hover:scale-105"
                   >
-                    Next level →
+                    Level {levelIndex + 2} →
                   </button>
                 ) : (
                   <a
@@ -397,9 +511,9 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        Drag to dig a channel from the source to the jerry can. Grey rocks and
-        the dark bedrock can't be dug — the can is solid, so every drop that
-        reaches it counts.
+        Drag through the soil to open a channel. Water falls with gravity toward
+        the yellow jerry can — grey rock and the dark bedrock footing can't be
+        dug, so every drop that reaches the can counts.
       </p>
 
       {/* Level select */}
@@ -426,6 +540,53 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
       >
         ← Back to start
       </Link>
+
+      {/* How to play modal */}
+      {howToOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4"
+          onClick={() => setHowToOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-card p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <h3 className="font-display text-2xl font-extrabold text-foreground">
+                How to play
+              </h3>
+              <button
+                onClick={() => setHowToOpen(false)}
+                aria-label="Close"
+                className="rounded-full border border-border px-3 py-1 text-sm font-bold text-foreground hover:bg-accent"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Open a channel through the soil and watch clean water find its way
+              to the yellow jerry can.
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-foreground">
+              <li>
+                <strong>Drag to dig.</strong> Press and drag with a mouse or
+                finger. The ring removes only the soil it touches.
+              </li>
+              <li>
+                <strong>Watch the water.</strong> Blue water falls, spreads, and
+                waits when it meets dirt.
+              </li>
+              <li>
+                <strong>Find the can.</strong> Open a connected route all the
+                way to the jerry can. Rocks and bedrock stay put.
+              </li>
+            </ul>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Shortcuts: R restarts the level · Esc closes this panel
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
