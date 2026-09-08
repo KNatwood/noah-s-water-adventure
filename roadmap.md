@@ -1,6 +1,7 @@
 # Water Quest rebuild
 
 - [x] Extract game mechanics + levels from published Replit bundle
+- [x] User pasted original source: keep original mechanics (source col 2 row 1, goal col 21 row 13, front-based falling water, opening pockets, digging toggle, settings modal, R to restart)
 - [x] Download charity: water brand assets from Drive
 - [ ] Upload brand assets to CDN
 - [ ] Brand design tokens in styles.css
