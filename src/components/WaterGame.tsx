@@ -109,16 +109,15 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
     const getNeighbors = (index: number) => {
       const column = index % COLS;
       const row = Math.floor(index / COLS);
-      return [
+      const candidates: [number, number][] = [
         [column, row + 1],
         [column - 1, row + 1],
         [column + 1, row + 1],
         [column - 1, row],
         [column + 1, row],
-      ]
-        .filter(
-          ([c, r]) => c >= 0 && c < COLS && r >= 0 && r < ROWS,
-        )
+      ];
+      return candidates
+        .filter(([c, r]) => c >= 0 && c < COLS && r >= 0 && r < ROWS)
         .map(([c, r]) => r * COLS + c);
     };
 
@@ -420,9 +419,9 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
             className="fill-rock"
           />
           <text
-            x={2 * CELL_SIZE + CELL_SIZE / 2}
-            y={1 * CELL_SIZE - 28}
-            textAnchor="middle"
+            x={3 * CELL_SIZE + 16}
+            y={1 * CELL_SIZE - 8}
+            textAnchor="start"
             className="fill-ink"
             style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2 }}
           >
