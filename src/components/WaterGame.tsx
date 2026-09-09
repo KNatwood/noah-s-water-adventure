@@ -419,9 +419,9 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
             className="fill-rock"
           />
           <text
-            x={2 * CELL_SIZE + CELL_SIZE / 2}
-            y={1 * CELL_SIZE - 28}
-            textAnchor="middle"
+            x={3 * CELL_SIZE + 16}
+            y={1 * CELL_SIZE - 8}
+            textAnchor="start"
             className="fill-ink"
             style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2 }}
           >
