@@ -16,6 +16,15 @@ import {
 } from "@/lib/levels";
 import { quoteForLevel } from "@/lib/quotes";
 import jerryCanYellow from "@/assets/jerry-can-yellow.png.asset.json";
+import {
+  isMuted,
+  playDig,
+  playDrip,
+  playTrickle,
+  playWin,
+  setMuted,
+  unlockAudio,
+} from "@/lib/sfx";
 
 const BRUSH_R = 27;
 const TICK_MS = 180;
@@ -24,7 +33,20 @@ const FILL_PER_TICK = 14;
 const SOLID = solidCells();
 const MOUTH = new Set(GOAL_MOUTH);
 
+/** Score: fast finishes score more; later levels are worth more. */
+export function scoreFor(levelIndex: number, seconds: number) {
+  const speed = Math.max(200, 1000 - Math.round(seconds) * 8);
+  return speed + (levelIndex + 1) * 50;
+}
+
+function formatTime(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 type FlowState = "moving" | "waiting" | "full";
+
 
 function createSoil(rockCells: Set<number>) {
   const soil = new Set<number>();
