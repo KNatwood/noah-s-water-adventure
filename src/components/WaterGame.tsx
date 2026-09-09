@@ -16,6 +16,15 @@ import {
 } from "@/lib/levels";
 import { quoteForLevel } from "@/lib/quotes";
 import jerryCanYellow from "@/assets/jerry-can-yellow.png.asset.json";
+import {
+  isMuted,
+  playDig,
+  playDrip,
+  playTrickle,
+  playWin,
+  setMuted,
+  unlockAudio,
+} from "@/lib/sfx";
 
 const BRUSH_R = 27;
 const TICK_MS = 180;
@@ -24,7 +33,20 @@ const FILL_PER_TICK = 14;
 const SOLID = solidCells();
 const MOUTH = new Set(GOAL_MOUTH);
 
+/** Score: fast finishes score more; later levels are worth more. */
+export function scoreFor(levelIndex: number, seconds: number) {
+  const speed = Math.max(200, 1000 - Math.round(seconds) * 8);
+  return speed + (levelIndex + 1) * 50;
+}
+
+function formatTime(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 type FlowState = "moving" | "waiting" | "full";
+
 
 function createSoil(rockCells: Set<number>) {
   const soil = new Set<number>();
@@ -48,9 +70,16 @@ function createSoil(rockCells: Set<number>) {
 interface WaterGameProps {
   levelIndex: number;
   onSelectLevel: (index: number) => void;
+  totalScore: number;
+  onLevelComplete: (levelIndex: number, score: number, seconds: number) => void;
 }
 
-export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
+export function WaterGame({
+  levelIndex,
+  onSelectLevel,
+  totalScore,
+  onLevelComplete,
+}: WaterGameProps) {
   const level: Level = LEVELS[levelIndex]!;
   const rockCells = useMemo(() => new Set(level.rocks.map(([c, r]) => r * COLS + c)), [level]);
 
@@ -62,6 +91,9 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
   const [status, setStatus] = useState<FlowState>("moving");
   const [solved, setSolved] = useState(false);
   const [howToOpen, setHowToOpen] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [levelScore, setLevelScore] = useState(0);
+  const [soundOn, setSoundOn] = useState(!isMuted());
 
   const svgRef = useRef<SVGSVGElement>(null);
   const soilRef = useRef<Set<number>>(soilCells);
@@ -71,8 +103,15 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
   const fillRef = useRef(0);
   const solvedRef = useRef(false);
   const drawingRef = useRef(false);
+  const startedRef = useRef(false);
+  const secondsRef = useRef(0);
+  const levelRef = useRef(levelIndex);
+  const lastDigSoundRef = useRef(0);
+  const completeRef = useRef(onLevelComplete);
   soilRef.current = soilCells;
   rockRef.current = rockCells;
+  levelRef.current = levelIndex;
+  completeRef.current = onLevelComplete;
 
   const reset = useCallback(() => {
     const nextSoil = createSoil(rockRef.current);
@@ -81,6 +120,8 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
     frontRef.current = [SOURCE_INDEX];
     fillRef.current = 0;
     solvedRef.current = false;
+    startedRef.current = false;
+    secondsRef.current = 0;
     setSoilCells(nextSoil);
     setWaterTrail([SOURCE_INDEX]);
     setWaterFront([SOURCE_INDEX]);
@@ -88,11 +129,23 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
     setFill(0);
     setStatus("moving");
     setSolved(false);
+    setSeconds(0);
+    setLevelScore(0);
   }, []);
 
   useEffect(() => {
     reset();
   }, [reset, levelIndex]);
+
+  // Level timer — starts on the first dig, stops when the can is full.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (!startedRef.current || solvedRef.current) return;
+      secondsRef.current += 1;
+      setSeconds(secondsRef.current);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // R restarts the level
   useEffect(() => {
@@ -103,6 +156,7 @@ export function WaterGame({ levelIndex, onSelectLevel }: WaterGameProps) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [reset]);
+
 
   // Water simulation — the original front-based falling water, with a fixed goal.
   useEffect(() => {
