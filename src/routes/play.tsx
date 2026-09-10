@@ -28,6 +28,18 @@ export const Route = createFileRoute("/play")({
 
 function PlayPage() {
   const [levelIndex, setLevelIndex] = useState(0);
+  const [totalScore, setTotalScore] = useState(0);
+  const [bestByLevel, setBestByLevel] = useState<Record<number, number>>({});
+
+  // Each level counts once — replaying only improves that level's best score.
+  const handleLevelComplete = (index: number, score: number) => {
+    setBestByLevel((prev) => {
+      const best = Math.max(prev[index] ?? 0, score);
+      const next = { ...prev, [index]: best };
+      setTotalScore(Object.values(next).reduce((a, b) => a + b, 0));
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,8 +65,14 @@ function PlayPage() {
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-5xl justify-center px-4 pb-16 pt-2">
-        <WaterGame levelIndex={levelIndex} onSelectLevel={setLevelIndex} />
+        <WaterGame
+          levelIndex={levelIndex}
+          onSelectLevel={setLevelIndex}
+          totalScore={totalScore}
+          onLevelComplete={handleLevelComplete}
+        />
       </main>
     </div>
   );
 }
+

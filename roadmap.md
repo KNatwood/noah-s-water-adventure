@@ -13,3 +13,4 @@
 - [x] Verified in browser: dug a channel on level 1, water reached the can, win overlay appeared
 
 Open: donate link currently points to https://www.charitywater.org/donate — confirm with user.
+- [x] Score system (time-based, per-level best, running total), level timer, and Web Audio sound effects (digging, trickling, filling drips, win chime) with a sound on/off toggle

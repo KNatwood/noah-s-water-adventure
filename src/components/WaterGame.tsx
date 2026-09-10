@@ -220,17 +220,23 @@ export function WaterGame({
       if (touching) {
         fillRef.current = Math.min(100, fillRef.current + FILL_PER_TICK);
         setFill(fillRef.current);
+        setStatus("full");
         if (fillRef.current >= 100) {
           solvedRef.current = true;
           setSolved(true);
-          setStatus("full");
+          const earned = scoreFor(levelRef.current, secondsRef.current);
+          setLevelScore(earned);
+          completeRef.current(levelRef.current, earned, secondsRef.current);
+          playWin();
         } else {
-          setStatus("full");
+          playDrip(fillRef.current / 100);
         }
       } else {
         const moving = nextFront.some((index, pos) => index !== frontRef.current[pos]);
         setStatus(moving ? "moving" : "waiting");
+        if (moving && Math.random() < 0.5) playTrickle();
       }
+
 
       frontRef.current = nextFront;
       setWaterFront(nextFront);
@@ -269,8 +275,17 @@ export function WaterGame({
         }
       }
     }
-    if (changed) setSoilCells(nextSoil);
+    if (changed) {
+      setSoilCells(nextSoil);
+      startedRef.current = true;
+      const now = Date.now();
+      if (now - lastDigSoundRef.current > 140) {
+        lastDigSoundRef.current = now;
+        playDig();
+      }
+    }
   }, []);
+
 
   const cellPoint = (index: number) => ({
     x: (index % COLS) * CELL_SIZE + CELL_SIZE / 2,
@@ -312,6 +327,18 @@ export function WaterGame({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              const next = !soundOn;
+              setSoundOn(next);
+              setMuted(!next);
+              if (next) unlockAudio();
+            }}
+            aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
+            className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          >
+            {soundOn ? "🔊 Sound on" : "🔇 Sound off"}
+          </button>
+          <button
             onClick={() => setHowToOpen(true)}
             className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
           >
@@ -323,6 +350,36 @@ export function WaterGame({
           >
             Restart <span className="text-muted-foreground">(R)</span>
           </button>
+        </div>
+      </div>
+
+      {/* Timer + score */}
+      <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-2">
+        <div className="flex items-center gap-6">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Time
+            </p>
+            <p className="font-display text-xl font-extrabold tabular-nums text-foreground">
+              {formatTime(seconds)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              This level
+            </p>
+            <p className="font-display text-xl font-extrabold tabular-nums text-foreground">
+              {levelScore || "—"}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Total score
+          </p>
+          <p className="font-display text-xl font-extrabold tabular-nums text-brand-foreground">
+            <span className="rounded-full bg-brand px-3 py-0.5">{totalScore}</span>
+          </p>
         </div>
       </div>
 
@@ -340,6 +397,7 @@ export function WaterGame({
         </span>
       </div>
 
+
       {/* Play field */}
       <div className="relative w-full overflow-hidden rounded-2xl border-4 border-ink bg-card shadow-xl">
         <svg
@@ -351,8 +409,10 @@ export function WaterGame({
               "linear-gradient(180deg, oklch(0.97 0.02 95) 0%, oklch(0.93 0.04 85) 100%)",
           }}
           onPointerDown={(e) => {
+            unlockAudio();
             e.currentTarget.setPointerCapture(e.pointerId);
             drawingRef.current = true;
+
             const p = getPoint(e);
             if (p) {
               setCursorPoint(p);
@@ -527,6 +587,33 @@ export function WaterGame({
               <h3 className="mt-3 font-display text-3xl font-extrabold text-foreground">
                 That water found its way.
               </h3>
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-muted p-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Time
+                  </p>
+                  <p className="font-display text-lg font-extrabold tabular-nums text-foreground">
+                    {formatTime(seconds)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Level score
+                  </p>
+                  <p className="font-display text-lg font-extrabold tabular-nums text-foreground">
+                    +{levelScore}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Total
+                  </p>
+                  <p className="font-display text-lg font-extrabold tabular-nums text-foreground">
+                    {totalScore}
+                  </p>
+                </div>
+              </div>
+
               <blockquote className="mt-4 text-lg font-semibold text-foreground">
                 “{quote.text}”
               </blockquote>
