@@ -275,8 +275,17 @@ export function WaterGame({
         }
       }
     }
-    if (changed) setSoilCells(nextSoil);
+    if (changed) {
+      setSoilCells(nextSoil);
+      startedRef.current = true;
+      const now = Date.now();
+      if (now - lastDigSoundRef.current > 140) {
+        lastDigSoundRef.current = now;
+        playDig();
+      }
+    }
   }, []);
+
 
   const cellPoint = (index: number) => ({
     x: (index % COLS) * CELL_SIZE + CELL_SIZE / 2,
