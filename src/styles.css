@@ -59,6 +59,8 @@
   --color-dirt-dark: var(--dirt-dark);
   --color-rock: var(--rock);
   --color-bedrock: var(--bedrock);
+  --color-sand: var(--sand);
+  --color-sky: var(--sky);
   --font-display: "Nunito", ui-rounded, system-ui, sans-serif;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -76,11 +78,13 @@
   --brand: oklch(0.852 0.169 91.5); /* cw yellow #FFC907 */
   --brand-foreground: oklch(0.18 0.02 80);
   --ink: oklch(0.17 0.015 80);
-  --water: oklch(0.62 0.17 236); /* cw blue #2E9DF7 */
-  --dirt: oklch(0.52 0.09 58);
-  --dirt-dark: oklch(0.44 0.08 58);
-  --rock: oklch(0.58 0.01 250);
-  --bedrock: oklch(0.3 0.015 60);
+  --water: oklch(0.665 0.062 233); /* cw light blue #77A8BB */
+  --dirt: oklch(0.586 0.104 43); /* cw clay #BF6C46 */
+  --dirt-dark: oklch(0.472 0.088 43); /* deeper clay */
+  --rock: oklch(0.827 0.006 275); /* cw grey #CBCCD1 */
+  --bedrock: oklch(0.331 0.089 254); /* cw navy #003366 */
+  --sand: oklch(0.887 0.049 58); /* cw peach #FED8C1 */
+  --sky: oklch(0.977 0.028 96); /* cw cream #FFF7E1 */
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
