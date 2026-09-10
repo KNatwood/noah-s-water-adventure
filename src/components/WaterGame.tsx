@@ -587,6 +587,33 @@ export function WaterGame({
               <h3 className="mt-3 font-display text-3xl font-extrabold text-foreground">
                 That water found its way.
               </h3>
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-muted p-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Time
+                  </p>
+                  <p className="font-display text-lg font-extrabold tabular-nums text-foreground">
+                    {formatTime(seconds)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Level score
+                  </p>
+                  <p className="font-display text-lg font-extrabold tabular-nums text-foreground">
+                    +{levelScore}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Total
+                  </p>
+                  <p className="font-display text-lg font-extrabold tabular-nums text-foreground">
+                    {totalScore}
+                  </p>
+                </div>
+              </div>
+
               <blockquote className="mt-4 text-lg font-semibold text-foreground">
                 “{quote.text}”
               </blockquote>
