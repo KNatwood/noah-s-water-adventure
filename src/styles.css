@@ -117,13 +117,13 @@
 
   /* SECONDARY = LIGHT BLUE */
   --secondary: #77A8BB;
-  --secondary-foreground: #003366;
+  --secondary-foreground: #1A1A1A;
 
   /* MUTED = ROCK GRAY */
   --muted: #CBCCD1;
   --muted-foreground: #1A1A1A;
 
-  /* ACCENT = PEACH */
+  /* ACCENT = TAN*/
   --accent: #FED8C1;
   --accent-foreground: #1A1A1A;
 
@@ -166,15 +166,15 @@
  */
 
 .bg-water {
-  background-color: #77A8BB !important;
+  background-color: #1A1A1A !important;
 }
 
 .bg-dirt {
-  background-color: #BF6C46 !important;
+  background-color: #FED8C1 !important;
 }
 
 .bg-dirt-dark {
-  background-color: #8F4F34 !important;
+  background-color: #BF6C46 !important;
 }
 
 .bg-rock {
@@ -182,11 +182,11 @@
 }
 
 .bg-bedrock {
-  background-color: #003366 !important;
+  background-color: #1A1A1A !important;
 }
 
 .bg-brand {
-  background-color: #FFC907 !important;
+  background-color: #FFF7E1 !important;
 }
 
 .bg-sand {
@@ -206,7 +206,7 @@
 }
 
 .text-bedrock {
-  color: #003366 !important;
+  color: #1A1A1A !important;
 }
 
 .text-ink {
