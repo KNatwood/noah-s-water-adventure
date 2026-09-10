@@ -220,17 +220,23 @@ export function WaterGame({
       if (touching) {
         fillRef.current = Math.min(100, fillRef.current + FILL_PER_TICK);
         setFill(fillRef.current);
+        setStatus("full");
         if (fillRef.current >= 100) {
           solvedRef.current = true;
           setSolved(true);
-          setStatus("full");
+          const earned = scoreFor(levelRef.current, secondsRef.current);
+          setLevelScore(earned);
+          completeRef.current(levelRef.current, earned, secondsRef.current);
+          playWin();
         } else {
-          setStatus("full");
+          playDrip(fillRef.current / 100);
         }
       } else {
         const moving = nextFront.some((index, pos) => index !== frontRef.current[pos]);
         setStatus(moving ? "moving" : "waiting");
+        if (moving && Math.random() < 0.5) playTrickle();
       }
+
 
       frontRef.current = nextFront;
       setWaterFront(nextFront);
