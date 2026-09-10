@@ -327,6 +327,18 @@ export function WaterGame({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              const next = !soundOn;
+              setSoundOn(next);
+              setMuted(!next);
+              if (next) unlockAudio();
+            }}
+            aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
+            className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          >
+            {soundOn ? "🔊 Sound on" : "🔇 Sound off"}
+          </button>
+          <button
             onClick={() => setHowToOpen(true)}
             className="rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
           >
@@ -338,6 +350,36 @@ export function WaterGame({
           >
             Restart <span className="text-muted-foreground">(R)</span>
           </button>
+        </div>
+      </div>
+
+      {/* Timer + score */}
+      <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-2">
+        <div className="flex items-center gap-6">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Time
+            </p>
+            <p className="font-display text-xl font-extrabold tabular-nums text-foreground">
+              {formatTime(seconds)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              This level
+            </p>
+            <p className="font-display text-xl font-extrabold tabular-nums text-foreground">
+              {levelScore || "—"}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Total score
+          </p>
+          <p className="font-display text-xl font-extrabold tabular-nums text-brand-foreground">
+            <span className="rounded-full bg-brand px-3 py-0.5">{totalScore}</span>
+          </p>
         </div>
       </div>
 
@@ -354,6 +396,7 @@ export function WaterGame({
           {statusLabel}
         </span>
       </div>
+
 
       {/* Play field */}
       <div className="relative w-full overflow-hidden rounded-2xl border-4 border-ink bg-card shadow-xl">
