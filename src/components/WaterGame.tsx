@@ -409,8 +409,10 @@ export function WaterGame({
               "linear-gradient(180deg, oklch(0.97 0.02 95) 0%, oklch(0.93 0.04 85) 100%)",
           }}
           onPointerDown={(e) => {
+            unlockAudio();
             e.currentTarget.setPointerCapture(e.pointerId);
             drawingRef.current = true;
+
             const p = getPoint(e);
             if (p) {
               setCursorPoint(p);
