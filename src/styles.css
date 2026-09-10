@@ -212,3 +212,435 @@
 .text-ink {
   color: #1A1A1A !important;
 }
+
+/* =========================================================
+   CHARITY: WATER GAME PALETTE OVERRIDE
+   =========================================================
+
+   Official palette:
+   Yellow  #FFC907
+   Navy    #003366
+   Water   #77A8BB
+   Cream   #FFF7E1
+   Black   #1A1A1A
+   Clay    #BF6C46
+   Gray    #CBCCD1
+   Peach   #FED8C1
+
+   This section overrides the old hard-coded game colors.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   MAIN PAGE
+   --------------------------------------------------------- */
+
+.quest-shell {
+  background: #FFF7E1;
+}
+
+/* Remove the full-screen grain/noise overlay.
+   This was being placed over the entire game. */
+.quest-shell::after {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   HEADER
+   --------------------------------------------------------- */
+
+.brand-lockup {
+  color: #003366;
+}
+
+.brand-kicker {
+  color: #1A1A1A;
+}
+
+.brand-name {
+  color: #003366;
+}
+
+.brand-name span {
+  color: #77A8BB;
+}
+
+/* ---------------------------------------------------------
+   GAME CONTAINER
+   --------------------------------------------------------- */
+
+.dig-zone {
+  background: #FFF7E1;
+}
+
+/* ---------------------------------------------------------
+   TOP SOIL / UNDERGROUND BACKGROUND
+   --------------------------------------------------------- */
+
+/* Main upper soil area */
+.soil-top {
+  fill: #BF6C46;
+}
+
+/* Darker soil underneath */
+.soil-shadow {
+  fill: #8F4F34;
+  opacity: 1;
+}
+
+/* Small dirt details */
+.soil-speck {
+  fill: #8F4F34;
+  opacity: 0.45;
+}
+
+/* Soil decorative lines */
+.soil-line {
+  stroke: #FED8C1;
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------
+   DIGGABLE SOIL CELLS
+   --------------------------------------------------------- */
+
+/*
+   The old code used:
+   #d2b887
+   #caae7a
+   #d8bf92
+   #c4a370
+   Those were causing the beige checkerboard.
+   Now the four tones are based on the charity: water
+   clay palette instead.
+*/
+
+.soil-tone-0 {
+  fill: #BF6C46;
+}
+
+.soil-tone-1 {
+  fill: #A85E3D;
+}
+
+.soil-tone-2 {
+  fill: #BF6C46;
+}
+
+.soil-tone-3 {
+  fill: #A85E3D;
+}
+
+/* Dirt cell outlines */
+.soil-cell {
+  stroke: rgba(26, 26, 26, 0.15);
+  stroke-width: 1;
+}
+
+/* Small dirt particles */
+.soil-pebble {
+  fill: #8F4F34;
+  opacity: 0.4;
+}
+
+/* ---------------------------------------------------------
+   ROCKS
+   --------------------------------------------------------- */
+
+/* Main rock */
+.rock-cell {
+  fill: #CBCCD1;
+  stroke: #1A1A1A;
+  stroke-width: 1.5;
+  opacity: 1;
+}
+
+/* Rock inner shape */
+.rock-shape {
+  fill: #CBCCD1;
+  stroke: #1A1A1A;
+  stroke-width: 1.5;
+}
+
+/* Rock highlight */
+.rock-highlight {
+  fill: #FFFFFF;
+  opacity: 0.7;
+}
+
+/* Rock cracks */
+.rock-crack {
+  fill: none;
+  stroke: #1A1A1A;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+/* ---------------------------------------------------------
+   WATER
+   --------------------------------------------------------- */
+
+/* Water route */
+.water-stream {
+  fill: none;
+  stroke: #77A8BB;
+  stroke-width: 15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 1;
+  /* Remove the old blue drop shadow */
+  filter: none;
+}
+
+/* Water-filled cells */
+.water-cell {
+  fill: #77A8BB;
+  opacity: 1;
+  filter: none;
+}
+
+/* Moving water particles */
+.water-particle {
+  fill: #FFF7E1;
+  stroke: #77A8BB;
+  stroke-width: 3;
+}
+
+/* Falling water drops */
+.water-drop {
+  fill: #77A8BB;
+}
+
+/* Water source */
+.source-dot {
+  fill: #77A8BB;
+  stroke: #FFF7E1;
+  stroke-width: 3;
+}
+
+.source-halo {
+  fill: rgba(119, 168, 187, 0.18);
+}
+
+/* ---------------------------------------------------------
+   TEXT ON GAME BOARD
+   --------------------------------------------------------- */
+
+.source-label,
+.goal-label {
+  fill: #1A1A1A;
+}
+
+/* ---------------------------------------------------------
+   JERRY CAN / GOAL
+   --------------------------------------------------------- */
+
+.goal-ring {
+  stroke: #FFC907;
+}
+
+.goal-ring-full {
+  stroke: #77A8BB;
+}
+
+.goal-can {
+  fill: #FFC907;
+  stroke: #003366;
+}
+
+.goal-cap {
+  fill: #FFC907;
+  stroke: #003366;
+}
+
+.goal-can-highlight {
+  fill: #FED8C1;
+  opacity: 0.8;
+}
+
+.goal-handle {
+  stroke: #003366;
+}
+
+.goal-shadow {
+  fill: rgba(26, 26, 26, 0.15);
+}
+
+/* ---------------------------------------------------------
+   DIGGING CURSOR
+   --------------------------------------------------------- */
+
+.cursor-ring {
+  fill: rgba(255, 201, 7, 0.20);
+  stroke: #FFC907;
+}
+
+/* ---------------------------------------------------------
+   BUTTONS
+   --------------------------------------------------------- */
+
+.primary-button {
+  background: #003366;
+  color: #FFF7E1;
+}
+
+.primary-button:hover {
+  background: #003366;
+}
+
+.yellow-button {
+  background: #FFC907;
+  color: #1A1A1A;
+}
+
+.yellow-button:hover {
+  background: #FFC907;
+}
+
+/* ---------------------------------------------------------
+   LEVEL / TOOLBAR
+   --------------------------------------------------------- */
+
+.level-label {
+  color: #003366;
+}
+
+.level-number {
+  background: #FFC907;
+  color: #1A1A1A;
+}
+
+.level-copy span {
+  color: #1A1A1A;
+}
+
+.tool-toggle {
+  background: #FFF7E1;
+  color: #003366;
+  border-color: rgba(26, 26, 26, 0.2);
+}
+
+.tool-toggle:hover {
+  border-color: #77A8BB;
+}
+
+.tool-toggle[data-active='true'] {
+  background: #003366;
+  color: #FFF7E1;
+  border-color: #003366;
+}
+
+.tool-toggle .toggle-dot {
+  background: #CBCCD1;
+}
+
+.tool-toggle[data-active='true'] .toggle-dot {
+  background: #FFC907;
+}
+
+/* ---------------------------------------------------------
+   SIDE CARDS
+   --------------------------------------------------------- */
+
+.rail-card {
+  background: #FFF7E1;
+  border-color: rgba(26, 26, 26, 0.15);
+}
+
+.rail-card h3 {
+  color: #003366;
+}
+
+.rail-card p {
+  color: #1A1A1A;
+}
+
+/* Water progress card */
+.progress-card {
+  background: #003366;
+  border-color: #003366;
+  color: #FFF7E1;
+}
+
+.progress-card h3 {
+  color: #FFF7E1;
+}
+
+.progress-head {
+  color: #77A8BB;
+}
+
+.progress-head strong {
+  color: #FFC907;
+}
+
+/* ---------------------------------------------------------
+   HELP TEXT
+   --------------------------------------------------------- */
+
+.dig-help {
+  background: rgba(255, 247, 225, 0.95);
+  color: #003366;
+}
+
+/* ---------------------------------------------------------
+   SUCCESS SCREEN
+   --------------------------------------------------------- */
+
+.success-card {
+  background: #FFF7E1;
+  border-color: rgba(0, 51, 102, 0.18);
+}
+
+.success-seal {
+  background: #FFC907;
+  color: #003366;
+}
+
+.success-card h2 {
+  color: #003366;
+}
+
+.success-card p {
+  color: #1A1A1A;
+}
+
+.success-stat {
+  background: #77A8BB;
+  color: #003366;
+}
+
+/* ---------------------------------------------------------
+   MODALS
+   --------------------------------------------------------- */
+
+.modal {
+  background: #FFF7E1;
+  color: #1A1A1A;
+}
+
+.modal h2 {
+  color: #003366;
+}
+
+.modal-close {
+  color: #003366;
+}
+
+.how-icon {
+  background: #FFC907;
+  color: #003366;
+}
+
+/* ---------------------------------------------------------
+   RESTART
+   --------------------------------------------------------- */
+
+.restart-button {
+  color: #1A1A1A;
+}
+
+.restart-button:hover {
+  color: #003366;
+  background: #FED8C1;
+}
