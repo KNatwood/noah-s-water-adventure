@@ -406,7 +406,7 @@ export function WaterGame({
           className="block w-full touch-none select-none"
           style={{
             background:
-              "linear-gradient(180deg, oklch(0.97 0.02 95) 0%, oklch(0.93 0.04 85) 100%)",
+              "linear-gradient(180deg, var(--sky) 0%, var(--sand) 100%)",
           }}
           onPointerDown={(e) => {
             unlockAudio();
