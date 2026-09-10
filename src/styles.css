@@ -59,6 +59,8 @@
   --color-dirt-dark: var(--dirt-dark);
   --color-rock: var(--rock);
   --color-bedrock: var(--bedrock);
+  --color-sand: var(--sand);
+  --color-sky: var(--sky);
   --font-display: "Nunito", ui-rounded, system-ui, sans-serif;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
